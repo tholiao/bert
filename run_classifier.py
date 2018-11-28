@@ -313,6 +313,44 @@ class MrpcProcessor(DataProcessor):
           InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     return examples
 
+class CorefProcessor(DataProcessor):
+  """Processor for the Coref data set (GLUE version)."""
+
+  def get_train_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
+  def get_dev_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
+
+  def get_test_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+
+  def get_labels(self):
+    """See base class."""
+    return ["0", "1"]
+
+  def _create_examples(self, lines, set_type):
+    """Creates examples for the training and dev sets."""
+    examples = []
+    for (i, line) in enumerate(lines):
+      if i == 0:
+        continue
+      guid = "%s-%s" % (set_type, i)
+      text_a = tokenization.convert_to_unicode(line[3])
+      text_b = tokenization.convert_to_unicode(line[4])
+      if set_type == "test":
+        label = "0"
+      else:
+        label = tokenization.convert_to_unicode(line[0])
+      examples.append(
+          InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+    return examples
 
 class ColaProcessor(DataProcessor):
   """Processor for the CoLA data set (GLUE version)."""
@@ -554,7 +592,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
   #
   # If you want to use the token-level output, use model.get_sequence_output()
   # instead.
-  output_layer = model.get_pooled_output()
+  output_layer = model.get_sequence_output()
 
   hidden_size = output_layer.shape[-1].value
 
@@ -746,7 +784,8 @@ def main(_):
       "mnli": MnliProcessor,
       "mrpc": MrpcProcessor,
       "xnli": XnliProcessor,
-  }
+      "coref": CorefProcessor
+}
 
   if not FLAGS.do_train and not FLAGS.do_eval and not FLAGS.do_predict:
     raise ValueError(
